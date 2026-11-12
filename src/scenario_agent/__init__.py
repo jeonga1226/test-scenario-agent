@@ -1,19 +1,18 @@
 from pathlib import Path
 
-from dotenv import load_dotenv
-from langchain_openai import ChatOpenAI
+from .graph import build_graph
 
 
 def main() -> None:
-    load_dotenv()
-    llm = ChatOpenAI(model="gpt-4.1-mini", temperature=0)
-
+    app = build_graph()
     source = Path("sample_app/index.html").read_text(encoding="utf-8")
 
-    prompt = (
-        "다음 화면 소스를 분석해서, 사용자가 테스트해야 할 기능을 정리해줘. "
-        "입력 항목, 버튼, 검증 규칙, 오류 메시지를 빠짐없이 적어.\n\n"
-        f"{source}"
-    )
-    result = llm.invoke(prompt)
-    print(result.content)
+    result = app.invoke({"source": source})
+    print(result["features"])
+    # # invoke 대신 stream: 노드가 하나 끝날 때마다 결과를 하나씩 돌려줌
+    # for step in app.stream({"source": source}, stream_mode="updates"):
+    #     for node_name, output in step.items():
+    #         print(f"===== [{node_name}] 완료 =====")
+    #         print(output)
+    
+    
