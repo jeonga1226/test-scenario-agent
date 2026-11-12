@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 from .graph import build_graph
@@ -7,15 +8,13 @@ def main() -> None:
     app = build_graph()
     source = Path("sample_app/index.html").read_text(encoding="utf-8")
 
-    # result = app.invoke({"source": source})
-    # print(result["features"])
-    # invoke 대신 stream: 노드가 하나 끝날 때마다 결과를 하나씩 돌려줌
-    for step in app.stream({"source": source}, stream_mode="updates"):
-        for node_name, output in step.items():
-            print(f"===== [{node_name}] 완료 =====")
-            print(output)
+    result = app.invoke({"source": source})
 
-    print(app.get_graph().draw_mermaid())
-   
-    
-    
+    for c in result["cases"]:
+        print(f"{c.tc_id} [{c.priority}] {c.feature} | {c.title}")
+        print(f"    → {c.expected}")
+
+    # 다음 단계에서 재사용하려고 파일로 저장
+    data = [c.model_dump() for c in result["cases"]]
+    Path("cases.json").write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(f"\n총 {len(data)}개 케이스 → cases.json 저장")
