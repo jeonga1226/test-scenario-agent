@@ -28,6 +28,16 @@ def analyze(state: State) -> dict:
     return {"features": result.content}
 
 
+# analyze가 State에 넣어둔 features를 읽어서 요약
+def summarize(state: State) -> dict:
+    prompt = (
+        "다음 기능 분석 결과를 핵심 기능 위주로 5줄 이내로 요약해줘.\n\n"
+        f"{state['features']}"
+    )
+    result = llm.invoke(prompt)
+    return {"summary": result.content}
+
+
 # ③ 그래프 조립: 노드 등록 + Edge(연결선)
 def build_graph():
     graph = StateGraph(State)
