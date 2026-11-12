@@ -42,6 +42,8 @@ def summarize(state: State) -> dict:
 def build_graph():
     graph = StateGraph(State)
     graph.add_node("analyze", analyze)
+    graph.add_node("summarize", summarize)
     graph.add_edge(START, "analyze")
-    graph.add_edge("analyze", END)
+    graph.add_edge("analyze", "summarize")
+    graph.add_edge("summarize", END)
     return graph.compile() # 최종 State 전체를 받는다
