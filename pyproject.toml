@@ -1,0 +1,20 @@
+[project]
+name = "test-scenario-agent"
+version = "0.1.0"
+description = "React(TS) 프로젝트로부터 단위 테스트 시나리오(Excel)를 생성하는 LangGraph 에이전트"
+readme = "README.md"
+authors = [
+    { name = "jeonga_sin", email = "jeonga_sin@gsenc.com" }
+]
+requires-python = ">=3.12"
+dependencies = []
+
+[project.scripts]
+scenario-agent = "scenario_agent:main"
+
+[build-system]
+requires = ["uv_build>=0.11.27,<0.12.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "scenario_agent"
