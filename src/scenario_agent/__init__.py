@@ -5,16 +5,20 @@ from .graph import build_graph
 
 
 def main() -> None:
-    app = build_graph()
-    source = Path("sample_app/index.html").read_text(encoding="utf-8")
+    APP_DIR = Path("/Users/jeonga/workspace/kosa-frontend/employee-chatbot")
 
-    result = app.invoke({"source": source})
+    app = build_graph()
+    source = (APP_DIR / "src/pages/LoginPage.tsx").read_text(encoding="utf-8")
+
+    result = app.invoke({"source": source, "base_url": "http://localhost:5173"})
+
+    if result["global_error"]:
+        print("스크립트 실행 실패:\n", result["global_error"])
+        return
 
     for c in result["cases"]:
-        print(f"{c.tc_id} [{c.priority}] {c.feature} | {c.title}")
-        print(f"    → {c.expected}")
-
-    # 다음 단계에서 재사용하려고 파일로 저장
-    data = [c.model_dump() for c in result["cases"]]
-    Path("cases.json").write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(f"\n총 {len(data)}개 케이스 → cases.json 저장")
+        r = result["results"].get(c.tc_id, {"status": "미실행", "error": ""})
+        mark = "✅" if r["status"] == "passed" else "❌"
+        print(f"{mark} {c.tc_id} {c.title}")
+        if r["error"]:
+            print("    ", r["error"].splitlines()[0])

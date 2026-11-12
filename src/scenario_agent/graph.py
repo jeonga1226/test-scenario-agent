@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from langgraph.graph import END, START, StateGraph
 from .schemas import TestCase, TestCases 
+from .runner import run_playwright
 
 
 load_dotenv()
@@ -14,8 +15,21 @@ llm = ChatOpenAI(model="gpt-4.1-mini", temperature=0)
 # TypedDict로 "어떤 값들이 오가는지"를 선언합니다. 프론트로 치면 Redux store의 타입 정의와 같아요.
 class State(TypedDict):
     source: str     # 입력: 화면 소스
+    base_url: str
     features: str   # 결과: 기능 분석
     cases: list[TestCase]
+    script: str            
+    results: dict          #  {"TC-001": {"status": ..., "error": ...}}
+    global_error: str      
+
+SCRIPT_RULES = """규칙:
+- 첫 줄은 import { test, expect } from '@playwright/test';
+- 테스트 케이스마다 test() 하나. 제목은 반드시 '<TC ID> <테스트 항목>' 형식 (예: 'TC-001 정상 로그인')
+- 각 테스트는 독립적으로 실행되도록 page.goto('/')로 시작하고, 사전 조건도 테스트 안에서 만든다
+- 셀렉터는 getByLabel, getByRole, getByText, id(#id) 순서로 우선 사용
+- 예상 결과는 expect로 검증한다
+- 코드만 출력하고 설명은 쓰지 않는다"""
+
 
 
 # ② Node: State를 받아서, 바꿀 값만 dict로 돌려주는 함수
@@ -45,12 +59,39 @@ def design_cases(state: State) -> dict:
     return {"cases": result.cases}
 
 
+def strip_fence(text: str) -> str:
+    """LLM이 붙이는 ```ts ... ``` 코드 블록 표시를 제거한다."""
+    text = text.strip()
+    if text.startswith("```"):
+        text = text.split("\n", 1)[1].rsplit("```", 1)[0]
+    return text.strip()
+
+
+def write_script(state: State) -> dict:
+    cases = [c.model_dump() for c in state["cases"]]
+    prompt = (
+        "다음 테스트 케이스를 Playwright Test(TypeScript) 코드로 작성해.\n"
+        f"{SCRIPT_RULES}\n\n"
+        f"[테스트 케이스]\n{cases}\n\n"
+        f"[화면 소스]\n{state['source']}"
+    )
+    result = llm.invoke(prompt)
+    return {"script": strip_fence(result.content)}
+
+
+def run_tests(state: State) -> dict:
+    return run_playwright(state["script"], state["base_url"])
+
 # ③ 그래프 조립: 노드 등록 + Edge(연결선)
 def build_graph():
     graph = StateGraph(State)
     graph.add_node("analyze", analyze)
     graph.add_node("design_cases", design_cases)
+    graph.add_node("write_script", write_script)
+    graph.add_node("run_tests", run_tests)
     graph.add_edge(START, "analyze")
-    graph.add_edge("analyze", "design_cases")
-    graph.add_edge("design_cases", END)
+    graph.add_edge("analyze", "design_cases") 
+    graph.add_edge("design_cases", "write_script")   
+    graph.add_edge("write_script", "run_tests")
+    graph.add_edge("run_tests", END)
     return graph.compile() # 최종 State 전체를 받는다
