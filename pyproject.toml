@@ -7,7 +7,10 @@ authors = [
     { name = "jeonga_sin", email = "jeonga_sin@gsenc.com" }
 ]
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "langchain-openai>=1.7.4",
+    "python-dotenv>=1.2.4",
+]
 
 [project.scripts]
 scenario-agent = "scenario_agent:main"
