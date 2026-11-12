@@ -11,3 +11,19 @@ wheels/
 
 # Secrets
 .env
+.env.*
+!.env.example
+
+test-results/
+tests/
+
+# Node
+node_modules/
+npm-debug.log*
+
+# LangGraph dev server
+.langgraph_api/
+
+# OS / Editor
+.DS_Store
+.idea/
